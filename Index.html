@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GYM Member App</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+<template id="gym-tpl">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* ===== HOST (dijalankan di Shadow DOM agar terisolasi dari CSS Blogger) ===== */
+:host{
+  all:initial;
+  --brand:#22C55E; --brand-2:#16A34A; --brand-rgb:34,197,94;
+  --ink-rgb:255,255,255; --panel:#0f1c16; --nav-rgb:12,24,19;
+  --bg:#0B1A14; --surface:rgba(var(--ink-rgb),.06); --surface-2:rgba(var(--ink-rgb),.09);
+  --border:rgba(var(--ink-rgb),.10); --text:#FFFFFF; --body:#CBD5E1; --muted:#8193A6; --danger:#EF4444;
+  position:fixed;inset:0;z-index:2147483000;display:block;
+  font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  font-size:15px;line-height:1.5;color:var(--body);-webkit-font-smoothing:antialiased;
+}
+/* ===== MODE SIANG (terang) ===== */
+:host(.siang){
+  --ink-rgb:15,23,42; --panel:#FFFFFF; --nav-rgb:255,255,255;
+  --bg:#EEF6F1; --text:#0F172A; --body:#334155; --muted:#64748B;
+}
+:host(.siang) .pill-ok{color:#15803D}
+:host(.siang) .pill-warn{color:#B45309}
+:host(.siang) .pill-bad{color:#B91C1C}
+:host(.siang) .pill-off{color:#475569}
+:host(.siang) .nav{box-shadow:0 10px 30px rgba(15,23,42,.12)}
+.tema-btn svg{display:block}
+.tema-btn .ico-moon{display:none}
+:host(.siang) .tema-btn .ico-moon{display:block}
+:host(.siang) .tema-btn .ico-sun{display:none}
+.ico-btn{flex-shrink:0}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none !important}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input,select{font:inherit;color:inherit}
+h1,h2,h3{color:var(--text);font-family:inherit;font-weight:700;line-height:1.2}
+h1{font-size:clamp(24px,4.6vw,34px);font-weight:800;letter-spacing:-.01em}
+h2{font-size:20px}
+h3{font-size:16px}
+p{margin:0}
+small{font-size:12px;color:var(--muted)}
+
+/* ===== LAYOUT DASAR (HP) ===== */
+#gym-app{position:fixed;inset:0;overflow-y:auto;overflow-x:hidden;background:
+  radial-gradient(900px 520px at 8% -8%,rgba(var(--brand-rgb),.22),transparent 60%),
+  radial-gradient(700px 520px at 100% 110%,rgba(var(--brand-rgb),.14),transparent 60%),var(--bg)}
+.wrap{position:relative;width:auto;max-width:760px;margin:0 auto;min-height:100%;padding:20px 18px 128px}
+#auth{max-width:420px;margin:0 auto;padding-top:24px}
+.muted{color:var(--muted);font-size:12px;letter-spacing:.02em}
+.accent{color:var(--brand)}
+.row{display:flex;align-items:center;gap:10px}
+.between{justify-content:space-between}
+label{display:block;font-size:12px;font-weight:600;color:var(--body);margin:14px 0 6px}
+
+.glass{background:var(--surface);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:22px;padding:18px}
+
+/* ===== TOMBOL & INPUT ===== */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;padding:12px 20px;font-weight:700;color:#04210F;background:linear-gradient(135deg,var(--brand-2),var(--brand));box-shadow:0 8px 22px rgba(var(--brand-rgb),.32);cursor:pointer;transition:transform .2s,box-shadow .2s;white-space:nowrap}
+.btn:hover{transform:translateY(-1px);box-shadow:0 10px 26px rgba(var(--brand-rgb),.42)}
+.btn:active{transform:scale(.97)}
+.btn[disabled]{opacity:.6;cursor:wait}
+.btn-ghost{background:var(--surface);color:var(--text);border:1px solid var(--border);box-shadow:none}
+.btn-ghost:hover{border-color:rgba(var(--brand-rgb),.5)}
+.btn-danger{background:var(--danger);color:#fff;box-shadow:none}
+.btn-sm{padding:8px 14px;font-size:13px}
+.icon-btn{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);color:var(--text);cursor:pointer;position:relative;font-size:17px;flex-shrink:0}
+.badge{position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;border-radius:9px;background:var(--danger);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 4px}
+.input{width:100%;background:rgba(var(--ink-rgb),.05);border:1px solid var(--border);border-radius:14px;padding:12px 14px;color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s}
+.input::placeholder{color:var(--muted)}
+.input option{background:var(--panel);color:var(--text)}
+.input:focus{border-color:var(--brand);box-shadow:0 0 0 4px rgba(var(--brand-rgb),.18)}
+.chip{padding:9px 16px;border-radius:14px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;transition:border-color .2s,color .2s}
+.chip.active{border-color:var(--brand);color:var(--brand);box-shadow:0 0 16px rgba(var(--brand-rgb),.25)}
+.swatch{width:30px;height:30px;border-radius:50%;border:2px solid rgba(var(--ink-rgb),.2);cursor:pointer}
+.tg{width:52px;height:30px;border-radius:999px;background:rgba(var(--ink-rgb),.14);position:relative;cursor:pointer;transition:background .3s;flex-shrink:0}
+.tg::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .35s cubic-bezier(.3,1.4,.6,1)}
+.tg.on{background:var(--brand)}
+.tg.on::after{transform:translateX(22px)}
+
+/* ===== KOMPONEN ===== */
+.pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
+.pill-ok{background:rgba(34,197,94,.15);color:#4ADE80}
+.pill-warn{background:rgba(245,158,11,.15);color:#FBBF24}
+.pill-bad{background:rgba(239,68,68,.15);color:#F87171}
+.pill-off{background:rgba(148,163,184,.15);color:#94A3B8}
+.list{display:flex;flex-direction:column;gap:10px}
+.item{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:18px;background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:border-color .2s,transform .2s}
+.item:hover{border-color:rgba(var(--brand-rgb),.5);transform:translateY(-1px)}
+.item-card{display:flex;flex-direction:column;gap:6px;align-items:flex-start;text-align:left;padding:16px;border-radius:20px;background:var(--surface);border:1px solid var(--border);color:var(--text);cursor:pointer;transition:transform .2s,border-color .2s;animation:fadeUp .5s backwards;animation-delay:calc(var(--i,0)*50ms)}
+.item-card:hover{transform:translateY(-3px);border-color:var(--brand)}
+.avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--brand-2),var(--brand));display:grid;place-items:center;color:#04210F;font-weight:800;flex-shrink:0}
+.ico{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:rgba(var(--brand-rgb),.14);font-size:20px;flex-shrink:0}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.grid2>:last-child:nth-child(odd):not(:only-child){grid-column:1/-1}
+.stat{padding:16px 18px}
+.stat .big{display:block;font-size:24px;font-weight:800;color:var(--text);margin-top:8px;letter-spacing:-.01em}
+.qa{display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px 12px;color:var(--text);font-size:13px;font-weight:600;text-align:center;cursor:pointer;transition:transform .2s,border-color .2s}
+.qa:hover{transform:translateY(-3px);border-color:rgba(var(--brand-rgb),.5)}
+.qa .qi{width:50px;height:50px;border-radius:16px;display:grid;place-items:center;font-size:24px;background:rgba(var(--brand-rgb),.14)}
+.logo-box{width:84px;height:84px;margin:0 auto;border-radius:26px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);font-size:42px;box-shadow:0 0 40px rgba(var(--brand-rgb),.22);animation:float 3s ease-in-out infinite;overflow:hidden}
+.logo-box img{width:100%;height:100%;object-fit:contain}
+.logo-box.lg{width:116px;height:116px}
+
+/* Kartu member */
+.mcard{position:relative;max-width:520px;margin:0 auto;border-radius:26px;padding:22px;overflow:hidden;color:#fff;background:linear-gradient(135deg,var(--brand-2),#052e16 80%);box-shadow:0 20px 50px rgba(var(--brand-rgb),.25);transition:transform .15s;will-change:transform}
+.mcard::before{content:'';position:absolute;inset:-40%;background:radial-gradient(circle,rgba(255,255,255,.16),transparent 60%);animation:sheen 6s linear infinite;pointer-events:none}
+.mcard p,.mcard h2,.mcard b{color:#fff}
+.qr{background:#fff;padding:8px;border-radius:14px;display:inline-block;line-height:0}
+
+/* ===== NAVIGASI BAWAH (HP & TABLET) ===== */
+.nav{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);width:calc(100% - 28px);max-width:520px;height:68px;display:flex;align-items:stretch;gap:4px;padding:6px;border-radius:22px;background:rgba(var(--nav-rgb),.86);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--border);box-shadow:0 18px 40px rgba(0,0,0,.45);z-index:20}
+.nav button{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:16px;color:var(--muted);font-size:11px;font-weight:600;line-height:1;transition:color .2s,background .2s}
+.nav button .e{font-size:19px;line-height:1;transition:transform .25s}
+.nav button .lbl{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav button.active{color:var(--brand);background:rgba(var(--brand-rgb),.12)}
+.nav button.active .e{transform:scale(1.12)}
+
+/* ===== HEADER & VIEW ===== */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+.caret::after{content:'|';margin-left:3px;color:var(--brand);animation:blink 1s steps(2) infinite}
+#content{display:block}
+#content.active,.view.active{animation:fadeUp .45s backwards}
+.view{display:none}
+.view.active{display:block}
+.stagger>*{opacity:0;animation:fadeUp .5s forwards}
+.stagger>*:nth-child(1){animation-delay:.04s}
+.stagger>*:nth-child(2){animation-delay:.10s}
+.stagger>*:nth-child(3){animation-delay:.16s}
+.stagger>*:nth-child(4){animation-delay:.22s}
+.stagger>*:nth-child(5){animation-delay:.28s}
+.stagger>*:nth-child(6){animation-delay:.34s}
+.stagger>*:nth-child(n+7){animation-delay:.40s}
+.skel{border-radius:18px;height:84px;margin-bottom:12px;background:linear-gradient(90deg,var(--surface) 25%,rgba(var(--ink-rgb),.12) 50%,var(--surface) 75%);background-size:800px 100%;animation:shimmer 1.4s infinite linear}
+.kasir-layout{display:block}
+#cart{margin-top:18px}
+.cart-list{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+
+/* ===== SPLASH ===== */
+#splash{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:var(--bg);transition:opacity .5s,visibility .5s}
+#splash.hide{opacity:0;visibility:hidden}
+.loader{text-align:center}
+.stack{position:relative;width:110px;height:110px;margin:0 auto}
+.stack .ring{position:absolute;inset:0;border-radius:50%;border:4px solid rgba(var(--brand-rgb),.15);border-top-color:var(--brand);border-right-color:var(--brand-2);animation:spin 1s linear infinite}
+.stack .dbl{position:absolute;inset:0;display:grid;place-items:center;font-size:44px;animation:bounce 1.2s ease-in-out infinite}
+.loader .bar{width:200px;height:6px;border-radius:6px;background:var(--surface);overflow:hidden;margin:26px auto 0}
+.loader .bar i{display:block;height:100%;width:40%;background:linear-gradient(90deg,transparent,var(--brand),transparent);animation:slide 1.2s ease-in-out infinite}
+.loader p{margin-top:14px;color:var(--body);font-size:12px;letter-spacing:.2em}
+.spin-sm{width:16px;height:16px;border-radius:50%;border:2px solid rgba(4,33,15,.3);border-top-color:#04210F;display:inline-block;animation:spin .7s linear infinite}
+
+/* ===== MODAL & TOAST ===== */
+.modal-bg{position:fixed;inset:0;background:rgba(3,10,7,.6);backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center;z-index:200;padding:14px}
+.modal-bg.show{display:flex;animation:fadeIn .25s backwards}
+.modal{width:100%;max-width:440px;max-height:88vh;overflow:auto;border-radius:24px;padding:22px;background:rgba(14,28,22,.97);border:1px solid var(--border);animation:slideUp .35s cubic-bezier(.2,.9,.3,1.1) backwards}
+#toast{position:fixed;top:18px;left:50%;transform:translate(-50%,-140px);z-index:300;padding:12px 18px;border-radius:14px;background:rgba(15,28,22,.97);border:1px solid var(--border);color:#fff;font-size:14px;font-weight:600;transition:transform .45s cubic-bezier(.2,.9,.3,1.2);max-width:90%;text-align:center}
+#toast.show{transform:translate(-50%,0)}
+#toast.err{border-color:var(--danger)}
+
+/* ===== TABLET (≥640px) ===== */
+@media (min-width:640px){
+  .wrap{max-width:760px;padding:28px 28px 128px}
+  .grid2{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+  .grid2>:last-child:nth-child(odd):not(:only-child){grid-column:auto}
+  .qa-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .nav{max-width:560px}
+  .modal-bg{align-items:center}
+  .modal{max-width:520px}
+}
+
+/* ===== LAPTOP / DESKTOP (≥1024px): sidebar kiri ===== */
+@media (min-width:1024px){
+  .wrap{max-width:900px}
+  :host(.in-app) .wrap{max-width:none;margin:0 0 0 272px;padding:36px 40px 56px}
+  :host(.in-app) .nav{left:16px;top:16px;bottom:16px;transform:none;width:232px;max-width:none;height:auto;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:6px;padding:18px 12px;border-radius:26px}
+  :host(.in-app) .nav button{flex:none;flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 14px;font-size:14px;border-radius:14px}
+  :host(.in-app) .nav button .e{font-size:19px}
+  :host(.in-app) .nav button.active .e{transform:none}
+  :host(.in-app) .list:not(.cart-list){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .kasir-layout{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px;align-items:start}
+  #cart{position:sticky;top:24px;margin-top:0}
+  .stat .big{font-size:28px}
+  .grid2,.qa-grid{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes bounce{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-10px) rotate(8deg)}}
+@keyframes slide{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+@keyframes blink{50%{opacity:0}}
+@keyframes float{50%{transform:translateY(-6px)}}
+@keyframes sheen{to{transform:rotate(360deg)}}
+
+</style>
+<div id="splash">
+  <div class="loader">
+    <div class="stack"><div class="ring"></div><div class="dbl" id="splash-logo">🏋️</div></div>
+    <div class="bar"><i></i></div>
+    <p id="splash-nama">MENYIAPKAN GYM...</p>
+  </div>
+</div>
+
+<div id="gym-app">
+  <div class="wrap">
+
+    <div id="auth" class="view active">
+      <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="icon-btn tema-btn" onclick="toggleTema()" title="Mode siang / malam"><svg class="ico-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="ico-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button></div>
+      <div id="login-logo" class="logo-box lg">🏋️</div>
+      <h1 id="login-title" style="text-align:center;margin-top:18px">GYM <span class="accent">Member</span></h1>
+      <p class="muted" style="text-align:center;margin-top:8px">Masuk sebagai admin, kasir, atau member</p>
+      <form class="glass" id="login-form" style="margin-top:28px">
+        <label>Username</label>
+        <input class="input" id="lu" autocomplete="username" required>
+        <label>Password</label>
+        <input class="input" id="lp" type="password" autocomplete="current-password" required>
+        <button class="btn" id="login-btn" type="submit" style="width:100%;margin-top:22px">Masuk</button>
+      </form>
+      <p class="muted" id="demo-hint" style="text-align:center;margin-top:16px;line-height:1.6"></p>
+      <div id="demo-box" class="glass" hidden style="margin-top:18px">
+        <p class="muted" style="text-align:center">Coba aplikasi tanpa daftar</p>
+        <div class="grid2" style="margin-top:12px">
+          <button class="btn btn-ghost" type="button" onclick="loginDemo('demo_admin')"><svg class="ico-btn" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg> Demo Admin</button>
+          <button class="btn btn-ghost" type="button" onclick="loginDemo('demo_kasir')"><svg class="ico-btn" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg> Demo Kasir</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="shell" class="view">
+      <div class="topbar">
+        <div class="row" id="brand"></div>
+        <div class="row">
+          <button class="icon-btn tema-btn" onclick="toggleTema()" title="Mode siang / malam"><svg class="ico-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="ico-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+          <button class="icon-btn" onclick="formGantiPassword()" title="Ganti password">🔑</button>
+          <button class="icon-btn" onclick="go('notif')" title="Notifikasi">🔔<span class="badge" id="bell-badge" hidden>0</span></button>
+          <button class="icon-btn" onclick="logout()" title="Keluar">🚪</button>
+        </div>
+      </div>
+      <div id="content"></div>
+      <nav class="nav" id="nav"></nav>
+    </div>
+
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-bg"><div class="modal" id="modal"></div></div>
+<div id="toast"></div>
+</template>
+<script>
+// ================= KONFIGURASI APLIKASI =================
+// UBAH IS_PREVIEW KE false JIKA AKAN DI-DEPLOY KE BLOGGER
+const IS_PREVIEW = false; // Set default true untuk Canvas
+const GAS_URL = "https://script.google.com/macros/s/AKfycbyXc_ixbDupbAU5ZcnTbLmbbyaLEYLp54LmhTF_Ti5B3gOLmtCWx-Nubi1pfOaGAuzhKw/exec";
+
+// ================= STATE & HELPER =================
+const S = { token: null, user: null, settings: {}, tab: 'dashboard', cart: [], kc: null, riwayat: [], kasirMember: null };
+const HOST = document.createElement('div');
+HOST.id = 'gym-host';
+document.body.appendChild(HOST);
+const ROOT = HOST.attachShadow({ mode: 'open' });
+ROOT.appendChild(document.getElementById('gym-tpl').content.cloneNode(true));
+const $ = (sel) => ROOT.querySelector(sel);
+function printEl() {
+  let el = document.getElementById('gym-print');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'gym-print';
+    document.body.appendChild(el);
+    const st = document.createElement('style');
+    st.textContent = '#gym-print{display:none}@media print{body>*:not(#gym-print){display:none !important}#gym-print{display:block !important;position:absolute;left:0;top:0;width:100%;color:#000;background:#fff;font-family:"Courier New",monospace;font-size:11px;line-height:1.35}#gym-print .nota{margin:0 auto;padding:2px 0}#gym-print table{width:100%;border-collapse:collapse}#gym-print td{padding:1px 0;vertical-align:top}#gym-print hr{border:0;border-top:1px dashed #000;margin:5px 0}}';
+    document.head.appendChild(st);
+  }
+  return el;
+}
+function paperStyleEl() {
+  let st = document.getElementById('gym-paper-style');
+  if (!st) { st = document.createElement('style'); st.id = 'gym-paper-style'; document.head.appendChild(st); }
+  return st;
+}
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const rp = (n) => 'Rp ' + Math.round(Number(n) || 0).toLocaleString('id-ID');
+const fmt = (n) => Math.round(Number(n) || 0).toLocaleString('id-ID');
+const todayStr = () => new Date().toLocaleDateString('sv-SE');
+const nowStamp = () => todayStr() + ' ' + new Date().toLocaleTimeString('sv-SE');
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+function addDays(d, n) { const x = new Date(d + 'T00:00:00'); x.setDate(x.getDate() + n); return x.toLocaleDateString('sv-SE'); }
+function diffDays(a, b) { return Math.round((new Date(a + 'T00:00:00') - new Date(b + 'T00:00:00')) / 86400000); }
+function waktu() { const h = new Date().getHours(); return h < 11 ? 'pagi' : h < 15 ? 'siang' : h < 18 ? 'sore' : 'malam'; }
+function statusClass(s) { return { 'Aktif': 'pill-ok', 'Segera Habis': 'pill-warn', 'Jatuh Tempo': 'pill-bad', 'Nonaktif': 'pill-off' }[s] || 'pill-off'; }
+function pesanTagihan(nama, gym, tgl, sisa) {
+  if (sisa < 0) return 'Halo ' + nama + ', masa aktif membership ' + gym + ' telah berakhir pada ' + tgl + '. Silakan perpanjang untuk tetap berlatih.';
+  return 'Halo ' + nama + ', membership ' + gym + ' akan jatuh tempo pada ' + tgl + ' (' + sisa + ' hari lagi). Mohon segera perpanjang. Terima kasih.';
+}
+function logoTag(src, size) {
+  return src
+    ? '<img src="' + src + '" style="width:' + size + 'px;height:' + size + 'px;object-fit:contain;border-radius:10px">'
+    : '<span style="font-size:' + Math.round(size * 0.8) + 'px;line-height:1">🏋️</span>';
+}
+function toast(msg, type) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = 'show' + (type === 'err' ? ' err' : '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { t.className = ''; }, 2600);
+}
+function openModal(html) { $('#modal').innerHTML = html; $('#modal-bg').classList.add('show'); }
+function closeModal() { $('#modal-bg').classList.remove('show'); }
+$('#modal-bg').addEventListener('click', e => { if (e.target.id === 'modal-bg') closeModal(); });
+
+function applyTheme(hex) {
+  const h = (hex || '#22C55E').replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  const root = HOST.style;
+  root.setProperty('--brand', '#' + h);
+  root.setProperty('--brand-rgb', r + ',' + g + ',' + b);
+  root.setProperty('--brand-2', 'rgb(' + [r, g, b].map(v => Math.round(v * 0.8)).join(',') + ')');
+}
+
+function setView(html) {
+  const c = $('#content');
+  c.innerHTML = html;
+  c.classList.remove('active');
+  void c.offsetWidth;
+  c.classList.add('active');
+}
+function skeleton() { return '<div class="skel"></div><div class="skel"></div><div class="skel"></div>'; }
+function stat(label, val, prefix) {
+  return '<div class="glass stat"><small class="muted">' + label + '</small><b class="big" data-count="' + Math.max(0, Math.round(val)) + '" data-prefix="' + (prefix || '') + '">0</b></div>';
+}
+function statTxt(label, html) {
+  return '<div class="glass stat"><small class="muted">' + label + '</small><div style="margin-top:12px">' + html + '</div></div>';
+}
+function countUp() {
+  ROOT.querySelectorAll('[data-count]').forEach(el => {
+    const end = Number(el.dataset.count), pre = el.dataset.prefix || '';
+    const st = performance.now();
+    const step = now => {
+      const k = Math.min((now - st) / 1000, 1);
+      el.textContent = pre + Math.round(end * (1 - Math.pow(1 - k, 3))).toLocaleString('id-ID');
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+}
+function typeText(el, text) {
+  el.textContent = '';
+  let i = 0;
+  const iv = setInterval(() => {
+    el.textContent = text.slice(0, ++i);
+    if (i >= text.length) { clearInterval(iv); el.classList.remove('caret'); }
+  }, 45);
+}
+
+// ================= API =================
+async function api(action, payload) {
+  payload = payload || {};
+  if (IS_PREVIEW) {
+    await sleep(450);
+    return mockApi(action, payload);
+  }
+  const r = await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: action, token: S.token, payload: payload })
+  });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || 'Terjadi kesalahan');
+  return j.data;
+}
+
+// ================= DATA DEMO (MODE PREVIEW) =================
+const MOCK = {
+  settings: { nama_gym: 'GYM Power Fit', logo_base64: '', warna_brand: '#22C55E', demo_aktif: 'true', wa_token: '', hari_peringatan: '3', alamat_gym: 'Jl. Contoh No. 1, Mataram', telepon_gym: '0812-0000-0000' },
+  users: [
+    { id: 'U1', username: 'admin', password: 'edudigital', role: 'admin', nama: 'Administrator', id_member: '', status: 'aktif' },
+    { id: 'U2', username: 'kasir', password: 'edudigital', role: 'kasir', nama: 'Kasir Satu', id_member: '', status: 'aktif' },
+    { id: 'U3', username: 'member', password: 'edudigital', role: 'member', nama: 'Budi Santoso', id_member: 'M001', status: 'aktif' },
+    { id: 'U4', username: 'demo', password: 'demo1234', role: 'member', nama: 'Member Demo', id_member: 'M-DEMO', status: 'demo' },
+    { id: 'U5', username: 'demo_admin', password: 'demo1234', role: 'admin', nama: 'Admin Demo', id_member: '', status: 'demo' },
+    { id: 'U6', username: 'demo_kasir', password: 'demo1234', role: 'kasir', nama: 'Kasir Demo', id_member: '', status: 'demo' }
+  ],
+  paket: [
+    { id_paket: 'PK001', nama_paket: 'Bulanan', durasi_hari: 30, harga: 150000, deskripsi: 'Akses penuh 1 bulan' },
+    { id_paket: 'PK002', nama_paket: '3 Bulan', durasi_hari: 90, harga: 400000, deskripsi: 'Hemat 10%' }
+  ],
+  produk: [
+    { id_produk: 'PR001', nama_produk: 'Susu Protein 1L', kategori: 'Minuman', harga: 45000, stok: 20 },
+    { id_produk: 'PR002', nama_produk: 'Susu Coklat 250ml', kategori: 'Minuman', harga: 12000, stok: 40 },
+    { id_produk: 'PR003', nama_produk: 'Pisang Energi', kategori: 'Makanan', harga: 8000, stok: 3 }
+  ],
+  members: [
+    { id_member: 'M001', nama: 'Budi Santoso', telepon: '081234567890', email: 'budi@mail.com', id_paket: 'PK001', tgl_daftar: addDays(todayStr(), -20), tgl_jatuh_tempo: addDays(todayStr(), 10), status: 'aktif' },
+    { id_member: 'M002', nama: 'Sari Dewi', telepon: '081298765432', email: 'sari@mail.com', id_paket: 'PK002', tgl_daftar: addDays(todayStr(), -95), tgl_jatuh_tempo: addDays(todayStr(), -2), status: 'aktif' },
+    { id_member: 'M003', nama: 'Rudi Hartono', telepon: '081211112222', email: '', id_paket: 'PK001', tgl_daftar: addDays(todayStr(), -27), tgl_jatuh_tempo: addDays(todayStr(), 2), status: 'aktif' },
+    { id_member: 'M-DEMO', nama: 'Member Demo', telepon: '', email: '', id_paket: 'PK001', tgl_daftar: todayStr(), tgl_jatuh_tempo: addDays(todayStr(), 30), status: 'demo' }
+  ],
+  transaksi: [],
+  detail: [],
+  notif: []
+};
+
+const DEMO_MSG = 'Akun demo hanya untuk mencoba. Aksi ini tidak tersedia';
+function mockWrite(roles) {
+  const me = mockMe(roles);
+  if (me.status === 'demo') throw new Error(DEMO_MSG);
+  return me;
+}
+function mockMe(roles) {
+  const u = MOCK.users.find(x => x.username === S.token);
+  if (!u) throw new Error('Sesi habis, silakan login ulang');
+  if (u.status === 'demo' && MOCK.settings.demo_aktif !== 'true') throw new Error('Akun demo sudah dinonaktifkan admin');
+  if (roles && roles.indexOf(u.role) === -1) throw new Error('Akses ditolak untuk role ini');
+  return u;
+}
+function mockStatus(m) {
+  if (m.status === 'nonaktif') return 'Nonaktif';
+  const s = diffDays(m.tgl_jatuh_tempo, todayStr());
+  if (s < 0) return 'Jatuh Tempo';
+  if (s <= Number(MOCK.settings.hari_peringatan)) return 'Segera Habis';
+  return 'Aktif';
+}
+function mockWithInfo(m) {
+  const pk = MOCK.paket.find(x => x.id_paket === m.id_paket) || {};
+  return Object.assign({}, m, {
+    nama_paket: pk.nama_paket || '-',
+    status_tampil: mockStatus(m),
+    sisa_hari: diffDays(m.tgl_jatuh_tempo, todayStr()),
+    username: (MOCK.users.find(u => u.id_member === m.id_member) || {}).username || ''
+  });
+}
+function mockNotif(idm, jenis, pesan) {
+  MOCK.notif.push({ id: 'N' + Date.now() + Math.floor(Math.random() * 99), tanggal: nowStamp(), id_member: idm, jenis: jenis, saluran: 'aplikasi', status: 'terkirim', pesan: pesan });
+}
+function mockUpsert(arr, key, obj) {
+  const i = arr.findIndex(x => x[key] === obj[key]);
+  if (i >= 0) arr[i] = Object.assign({}, arr[i], obj); else arr.push(obj);
+}
+
+function mockApi(action, p) {
+  const M = MOCK;
+  const t = todayStr();
+  const demoOn = M.settings.demo_aktif === 'true';
+  switch (action) {
+    case 'getBrand': return { nama_gym: M.settings.nama_gym, logo_base64: M.settings.logo_base64, warna_brand: M.settings.warna_brand, demo_aktif: M.settings.demo_aktif };
+    case 'login': {
+      const u = M.users.find(x => x.username === p.username && x.password === p.password);
+      if (!u) throw new Error('Username atau password salah');
+      if (u.status === 'demo' && !demoOn) throw new Error('Akun demo sudah dinonaktifkan admin');
+      return { token: u.username, user: { role: u.role, nama: u.nama, id_member: u.id_member, username: u.username, demo: u.status === 'demo' } };
+    }
+    case 'getSettings': {
+      const me = mockMe();
+      const s = Object.assign({}, M.settings);
+      if (me.role !== 'admin' || me.status === 'demo') delete s.wa_token;
+      return s;
+    }
+    case 'saveSettings': {
+      mockWrite(['admin']);
+      ['nama_gym', 'warna_brand', 'demo_aktif', 'wa_token', 'hari_peringatan', 'alamat_gym', 'telepon_gym'].forEach(k => {
+        if (p.settings[k] !== undefined) M.settings[k] = String(p.settings[k]);
+      });
+      return {};
+    }
+    case 'saveLogo': mockWrite(['admin']); M.settings.logo_base64 = p.base64; return {};
+    case 'dashboard': {
+      const me = mockMe();
+      const trxHari = M.transaksi.filter(x => String(x.tanggal).slice(0, 10) === t && (me.status !== 'demo' || String(x.id_trx).indexOf('DEMO-') === 0));
+      const omzet = trxHari.reduce((a, x) => a + Number(x.total), 0);
+      if (me.role === 'member') {
+        const m = mockWithInfo(M.members.find(x => x.id_member === me.id_member));
+        return { role: 'member', member: m, sisa_hari: m.sisa_hari, status: m.status_tampil, paket: m.nama_paket };
+      }
+      const aktif = M.members.filter(m => (me.status !== 'demo' || m.status === 'demo') && ['Aktif', 'Segera Habis'].indexOf(mockStatus(m)) !== -1).length;
+      if (me.role === 'kasir') return { role: 'kasir', trx_hari: trxHari.length, omzet_hari: omzet, member_aktif: aktif };
+      return {
+        role: 'admin', total_aktif: aktif,
+        jatuh_tempo: M.members.filter(m => (me.status !== 'demo' || m.status === 'demo') && mockStatus(m) === 'Jatuh Tempo').length,
+        omzet_hari: omzet, trx_hari: trxHari.length,
+        stok_rendah: M.produk.filter(x => x.stok <= 5).length
+      };
+    }
+    case 'listMembers': {
+      const me = mockMe(['admin', 'kasir']);
+      return M.members.filter(m => (m.status !== 'demo' || demoOn) && (me.status !== 'demo' || m.status === 'demo')).map(mockWithInfo);
+    }
+    case 'getMember': {
+      const me = mockMe();
+      const id = me.role === 'member' ? me.id_member : p.id_member;
+      const m = M.members.find(x => x.id_member === id);
+      if (!m || (me.status === 'demo' && m.status !== 'demo')) throw new Error('Member tidak ditemukan');
+      return mockWithInfo(m);
+    }
+    case 'saveMember': {
+      mockWrite(['admin']);
+      const isNew = !p.id_member;
+      const id = p.id_member || 'M' + String(M.members.length + 1).padStart(3, '0');
+      const pk = M.paket.find(x => x.id_paket === p.id_paket);
+      const ex = M.members.find(x => x.id_member === id);
+      const jatuh = ex ? (p.tgl_jatuh_tempo || ex.tgl_jatuh_tempo) : addDays(t, pk ? Number(pk.durasi_hari) : 30);
+      mockUpsert(M.members, 'id_member', {
+        id_member: id, nama: p.nama, telepon: p.telepon || '', email: p.email || '', id_paket: p.id_paket || '',
+        tgl_daftar: ex ? ex.tgl_daftar : t, tgl_jatuh_tempo: jatuh, status: ex ? ex.status : 'aktif'
+      });
+      if (p.username && p.password) {
+        const u = M.users.find(x => x.id_member === id);
+        if (u) { u.username = p.username; u.password = p.password; }
+        else M.users.push({ id: 'U' + Date.now(), username: p.username, password: p.password, role: 'member', nama: p.nama, id_member: id, status: 'aktif' });
+      }
+      return { id_member: id, isNew: isNew };
+    }
+    case 'deleteMember': mockWrite(['admin']); M.members.find(x => x.id_member === p.id_member).status = 'nonaktif'; return {};
+    case 'changePassword': {
+      const me = mockWrite();
+      if (me.password !== p.old_password) throw new Error('Password lama salah');
+      if (String(p.new_password || '').length < 6) throw new Error('Password minimal 6 karakter');
+      me.password = p.new_password;
+      return {};
+    }
+    case 'resetPasswordMember': {
+      mockWrite(['admin']);
+      if (String(p.password || '').length < 6) throw new Error('Password minimal 6 karakter');
+      const u = M.users.find(x => x.id_member === p.id_member);
+      if (u) { u.password = p.password; }
+      else {
+        if (!p.username) throw new Error('Member belum punya akun. Isi username untuk membuat akun');
+        const mem = M.members.find(x => x.id_member === p.id_member);
+        M.users.push({ id: 'U' + Date.now(), username: p.username, password: p.password, role: 'member', nama: mem ? mem.nama : '', id_member: p.id_member, status: 'aktif' });
+      }
+      return {};
+    }
+    case 'hapusPermanen': {
+      mockWrite(['admin']);
+      if (!p.id_member) throw new Error('ID member kosong');
+      M.users = M.users.filter(x => x.id_member !== p.id_member);
+      M.members = M.members.filter(x => x.id_member !== p.id_member);
+      return {};
+    }
+    case 'hapusDataDemo': {
+      mockWrite(['admin']);
+      const n = M.transaksi.filter(x => String(x.id_trx).indexOf('DEMO-') === 0).length;
+      M.transaksi = M.transaksi.filter(x => String(x.id_trx).indexOf('DEMO-') !== 0);
+      M.detail = M.detail.filter(x => String(x.id_trx).indexOf('DEMO-') !== 0);
+      return { transaksi: n, detail: 0 };
+    }
+    case 'listPaket': mockMe(); return M.paket;
+    case 'savePaket': mockWrite(['admin']); mockUpsert(M.paket, 'id_paket', Object.assign({}, p, { id_paket: p.id_paket || 'PK' + Date.now() })); return {};
+    case 'listProduk': mockMe(); return M.produk;
+    case 'saveProduk': mockWrite(['admin']); mockUpsert(M.produk, 'id_produk', Object.assign({}, p, { id_produk: p.id_produk || 'PR' + Date.now() })); return {};
+    case 'checkout': {
+      const me = mockMe(['admin', 'kasir']);
+      const demo = me.status === 'demo';
+      const items = p.items || [];
+      if (!items.length) throw new Error('Keranjang kosong');
+      const mem = p.id_member ? M.members.find(x => x.id_member === p.id_member) : null;
+      if (demo && mem && mem.status !== 'demo') throw new Error('Akun demo hanya bisa memakai member demo');
+      const idTrx = (demo ? 'DEMO-' : 'TRX') + Date.now().toString().slice(-8);
+      const detail = [];
+      let total = 0;
+      items.forEach(it => {
+        if (it.tipe === 'produk') {
+          const pr = M.produk.find(x => x.id_produk === it.id);
+          const q = Math.max(1, Number(it.qty || 1));
+          if (!demo && pr.stok < q) throw new Error('Stok ' + pr.nama_produk + ' tidak cukup');
+          if (!demo) pr.stok -= q;
+          total += pr.harga * q;
+          detail.push({ id_trx: idTrx, id_item: pr.id_produk, nama_item: pr.nama_produk, qty: q, harga: pr.harga, subtotal: pr.harga * q });
+        } else {
+          if (!mem) throw new Error('Pilih member untuk membership');
+          const pk = M.paket.find(x => x.id_paket === it.id);
+          total += pk.harga;
+          const base = diffDays(mem.tgl_jatuh_tempo, t) > 0 ? mem.tgl_jatuh_tempo : t;
+          mem.tgl_jatuh_tempo = addDays(base, pk.durasi_hari);
+          mem.id_paket = pk.id_paket;
+          mem.status = 'aktif';
+          detail.push({ id_trx: idTrx, id_item: pk.id_paket, nama_item: pk.nama_paket, qty: 1, harga: pk.harga, subtotal: pk.harga });
+        }
+      });
+      const trx = { id_trx: idTrx, tanggal: nowStamp(), jenis: items.some(i => i.tipe === 'membership') ? 'Membership' : 'Produk', id_member: mem ? mem.id_member : '', total: total, metode_bayar: p.metode_bayar || 'Tunai', kasir: mockMe().nama };
+      M.transaksi.push(trx);
+      M.detail.push.apply(M.detail, detail);
+      if (mem) mockNotif(mem.id_member, 'Pembayaran', 'Pembayaran ' + rp(total) + ' berhasil (' + idTrx + ')');
+      return Object.assign({}, trx, {
+        member: mem ? mem.nama : '-', items: detail,
+        gym: { nama: M.settings.nama_gym, alamat: M.settings.alamat_gym, telepon: M.settings.telepon_gym, logo_base64: M.settings.logo_base64 }
+      });
+    }
+    case 'listTransaksi': {
+      const me = mockMe();
+      let r = M.transaksi.slice().reverse();
+      if (me.role === 'member') r = r.filter(x => x.id_member === me.id_member);
+      if (me.status === 'demo') r = r.filter(x => String(x.id_trx).indexOf('DEMO-') === 0);
+      return r.map(x => Object.assign({}, x, { items: M.detail.filter(d => d.id_trx === x.id_trx) }));
+    }
+    case 'listNotifikasi': {
+      const me = mockMe();
+      let r = M.notif.slice().reverse();
+      if (me.role === 'member') r = r.filter(x => x.id_member === me.id_member);
+      if (me.status === 'demo') { const ids = M.members.filter(m => m.status === 'demo').map(m => m.id_member); r = r.filter(x => ids.indexOf(x.id_member) !== -1); }
+      return r;
+    }
+    case 'kirimWA': {
+      mockWrite(['admin', 'kasir']);
+      if (!M.settings.wa_token) throw new Error('Token WA belum diisi di Pengaturan');
+      mockNotif(p.id_member, 'Pesan Manual', p.pesan);
+      return { terkirim: true, catatan: 'Mode preview: pesan disimulasikan' };
+    }
+    case 'runReminder': {
+      mockWrite(['admin']);
+      const hari = Number(M.settings.hari_peringatan);
+      let n = 0;
+      M.members.forEach(m => {
+        if (m.status === 'nonaktif' || m.status === 'demo') return;
+        const s = diffDays(m.tgl_jatuh_tempo, t);
+        if (s > hari) return;
+        const jenis = s < 0 ? 'Sudah Jatuh Tempo' : 'Akan Jatuh Tempo';
+        if (M.notif.some(x => x.id_member === m.id_member && x.jenis === jenis && String(x.tanggal).slice(0, 10) === t)) return;
+        mockNotif(m.id_member, jenis, pesanTagihan(m.nama, M.settings.nama_gym, m.tgl_jatuh_tempo, s));
+        n++;
+      });
+      return { notifAplikasi: n, kirimWA: 0, catatan: 'Mode preview: WhatsApp tidak dikirim' };
+    }
+    default: throw new Error('Action tidak dikenal: ' + action);
+  }
+}
+
+// ================= NAVIGASI & SESI =================
+const TABS = {
+  admin:  [['dashboard', '🏠', 'Beranda'], ['members', '👥', 'Member'], ['kasir', '🧾', 'Kasir'], ['produk', '📦', 'Produk'], ['pengaturan', '⚙️', 'Atur']],
+  kasir:  [['dashboard', '🏠', 'Beranda'], ['kasir', '🧾', 'Kasir'], ['members', '👥', 'Member'], ['riwayat', '📋', 'Riwayat']],
+  member: [['dashboard', '🏠', 'Beranda'], ['kartu', '🪪', 'Kartu'], ['riwayat', '📋', 'Tagihan'], ['notif', '🔔', 'Notif']]
+};
+const ROLE_LABEL = { admin: 'Administrator', kasir: 'Kasir', member: 'Member' };
+
+function buildNav() {
+  $('#nav').innerHTML = TABS[S.user.role].map(t =>
+    '<button data-t="' + t[0] + '" onclick="go(\'' + t[0] + '\')"><span class="e">' + t[1] + '</span><span class="lbl">' + t[2] + '</span></button>'
+  ).join('');
+}
+function updateHeader() {
+  const s = S.settings;
+  $('#brand').innerHTML = logoTag(s.logo_base64, 36) +
+    '<div><h3 style="font-size:15px">' + esc(s.nama_gym) + '</h3><p class="muted">' + (S.user ? ROLE_LABEL[S.user.role] + (S.user.demo ? ' · Mode Demo' : '') : '') + '</p></div>';
+  $('#bell-badge').hidden = true;
+}
+function enterApp() {
+  $('#auth').classList.remove('active');
+  $('#shell').classList.add('active');
+  HOST.classList.add('in-app');
+  applyTheme(S.settings.warna_brand);
+  updateHeader();
+  buildNav();
+  go('dashboard');
+}
+function logout() {
+  localStorage.removeItem('gym_session');
+  S.token = null; S.user = null; S.cart = []; S.kasirMember = null;
+  $('#shell').classList.remove('active');
+  HOST.classList.remove('in-app');
+  $('#auth').classList.add('active');
+  $('#login-form').reset();
+  applyTheme(S.brand ? S.brand.warna_brand : '#22C55E');
+  tampilkanKotakDemo();
+  segarkanStatusDemo();
+}
+
+async function go(tab) {
+  S.tab = tab;
+  ROOT.querySelectorAll('.nav button').forEach(b => b.classList.toggle('active', b.dataset.t === tab));
+  setView(skeleton());
+  try {
+    await VIEWS[tab]();
+  } catch (e) {
+    setView('<div class="glass"><h3>Gagal memuat</h3><p class="muted" style="margin-top:6px">' + esc(e.message) + '</p></div>');
+    toast(e.message, 'err');
+  }
+}
+
+// ================= DASHBOARD =================
+async function vDashboard() {
+  const d = await api('dashboard');
+  const role = S.user.role;
+  const nama = S.user.nama.split(' ')[0];
+  const sapaan = role === 'admin' ? 'Admin' : role === 'kasir' ? 'Kasir' : nama;
+  let cards = '', acts = '', sub = '';
+  if (role === 'admin') {
+    cards = stat('Member Aktif', d.total_aktif) + stat('Jatuh Tempo', d.jatuh_tempo) +
+            stat('Omzet Hari Ini', d.omzet_hari, 'Rp ') + stat('Transaksi Hari Ini', d.trx_hari) +
+            stat('Stok Menipis', d.stok_rendah);
+    sub = d.jatuh_tempo + ' member perlu perhatian pembayaran';
+    acts = [['members', '👥', 'Member'], ['kasir', '🧾', 'Kasir'], ['produk', '📦', 'Produk'], ['pengaturan', '⚙️', 'Pengaturan']];
+  } else if (role === 'kasir') {
+    cards = stat('Transaksi Hari Ini', d.trx_hari) + stat('Omzet Hari Ini', d.omzet_hari, 'Rp ') +
+            stat('Member Aktif', d.member_aktif);
+    sub = 'Siap melayani ' + d.trx_hari + ' transaksi hari ini';
+    acts = [['kasir', '🧾', 'Kasir'], ['members', '👥', 'Member'], ['riwayat', '📋', 'Riwayat']];
+  } else {
+    const sisa = Math.max(0, d.sisa_hari);
+    cards = stat('Sisa Masa Aktif (hari)', sisa) +
+            statTxt('Status', '<span class="pill ' + statusClass(d.status) + '">' + esc(d.status) + '</span>') +
+            statTxt('Paket', '<b style="color:var(--text)">' + esc(d.paket) + '</b>');
+    sub = d.sisa_hari >= 0
+      ? 'Masa aktif Anda tersisa ' + d.sisa_hari + ' hari'
+      : 'Masa aktif berakhir ' + Math.abs(d.sisa_hari) + ' hari lalu, silakan perpanjang';
+    acts = [['kartu', '🪪', 'Kartu Member'], ['riwayat', '📋', 'Tagihan'], ['notif', '🔔', 'Notifikasi']];
+  }
+  setView(
+    '<div class="stagger">' +
+      '<h1 id="typed" class="caret" style="margin-top:6px;min-height:36px"></h1>' +
+      '<p style="margin-top:10px;font-size:14px;color:var(--body)">' + esc(sub) + '</p>' +
+      '<div class="grid2" style="margin-top:20px">' + cards + '</div>' +
+      '<h3 style="margin:26px 0 12px">Aksi Cepat</h3>' +
+      '<div class=\"grid2 qa-grid\">' +
+        acts.map(a => '<button class="glass qa" onclick="go(\'' + a[0] + '\')"><span class="qi">' + a[1] + '</span>' + a[2] + '</button>').join('') +
+      '</div>' +
+    '</div>'
+  );
+  typeText($('#typed'), 'Selamat ' + waktu() + ', ' + sapaan + '!');
+  countUp();
+}
+
+// ================= MEMBER =================
+async function vMembers() {
+  const list = await api('listMembers');
+  S.members = list;
+  const admin = S.user.role === 'admin';
+  setView(
+    '<div class="row between" style="margin-bottom:14px"><h2>Daftar Member</h2>' +
+      (admin ? '<button class="btn btn-sm" onclick="formMember()">+ Tambah</button>' : '') + '</div>' +
+    '<input class="input" placeholder="🔎 Cari nama atau nomor member" oninput="filterMember(this.value)" style="margin-bottom:14px">' +
+    '<div class="list" id="mlist">' +
+      (list.length ? list.map(m =>
+        '<div class="item" data-q="' + esc((m.nama + ' ' + m.id_member).toLowerCase()) + '" onclick="detailMember(\'' + esc(m.id_member) + '\')">' +
+          '<span class="avatar">' + esc(m.nama.charAt(0)) + '</span>' +
+          '<div style="flex:1;min-width:0"><h3 style="font-size:15px">' + esc(m.nama) + '</h3>' +
+          '<p class="muted" style="margin-top:3px">' + esc(m.id_member) + ' · ' + esc(m.nama_paket) + '</p></div>' +
+          '<span class="pill ' + statusClass(m.status_tampil) + '">' + esc(m.status_tampil) + '</span>' +
+        '</div>').join('') : '<p class="muted">Belum ada member.</p>') +
+    '</div>'
+  );
+}
+function filterMember(q) {
+  q = q.toLowerCase();
+  ROOT.querySelectorAll('#mlist .item').forEach(el => { el.hidden = el.dataset.q.indexOf(q) === -1; });
+}
+async function detailMember(id) {
+  const m = await api('getMember', { id_member: id });
+  const adm = S.user.role === 'admin' && !S.user.demo;
+  openModal(
+    '<div class="row between"><h2>' + esc(m.nama) + '</h2><button class="icon-btn" onclick="closeModal()">✕</button></div>' +
+    '<p class="muted" style="margin-top:6px">' + esc(m.id_member) + ' · ' + esc(m.nama_paket) + '</p>' +
+    '<div class="row" style="margin:14px 0"><span class="pill ' + statusClass(m.status_tampil) + '">' + esc(m.status_tampil) + '</span>' +
+    '<span class="muted">Jatuh tempo ' + esc(m.tgl_jatuh_tempo) + '</span></div>' +
+    '<p>📞 ' + esc(m.telepon || '-') + '</p><p style="margin-top:6px">✉️ ' + esc(m.email || '-') + '</p>' +
+    '<div class="grid2" style="margin-top:20px">' +
+      '<button class="btn" onclick="perpanjang(\'' + esc(id) + '\')">➕ Perpanjang</button>' +
+      (S.user.demo ? '' : '<button class="btn btn-ghost" onclick="kirimWAMember(\'' + esc(id) + '\')">💬 Kirim WA</button>') +
+      (adm ? '<button class="btn btn-ghost" onclick="formMember(\'' + esc(id) + '\')">✏️ Edit</button>' : '') +
+      (adm ? '<button class="btn btn-ghost" onclick="bukaResetPassword(\'' + esc(id) + '\')">🔑 Reset Password</button>' : '') +
+      (adm ? '<button class="btn btn-danger" onclick="hapusMemberPermanen(\'' + esc(id) + '\')">🗑 Hapus Permanen</button>' : '') +
+      (adm ? '<button class="btn btn-danger" onclick="hapusMember(\'' + esc(id) + '\')">🗑 Nonaktifkan</button>' : '') +
+    '</div>'
+  );
+}
+async function formMember(id) {
+  const pk = await api('listPaket');
+  const m = id ? await api('getMember', { id_member: id }) : {};
+  openModal(
+    '<h2>' + (id ? 'Edit' : 'Tambah') + ' Member</h2>' +
+    '<form onsubmit="simpanMember(event,\'' + esc(id || '') + '\')">' +
+      '<label>Nama</label><input class="input" name="nama" value="' + esc(m.nama || '') + '" required>' +
+      '<label>No. WhatsApp</label><input class="input" name="telepon" value="' + esc(m.telepon || '') + '" placeholder="081234567890">' +
+      '<label>Email</label><input class="input" name="email" value="' + esc(m.email || '') + '">' +
+      '<label>Paket</label><select class="input" name="id_paket">' +
+        pk.map(p => '<option value="' + esc(p.id_paket) + '" ' + (p.id_paket === m.id_paket ? 'selected' : '') + '>' + esc(p.nama_paket) + ' — ' + rp(p.harga) + '</option>').join('') +
+      '</select>' +
+      (id ? '<label>Tanggal Jatuh Tempo</label><input class="input" type="date" name="tgl_jatuh_tempo" value="' + esc(m.tgl_jatuh_tempo) + '">' : '') +
+      '<label>Akun Login Member (opsional)</label>' +
+      '<input class="input" name="username" placeholder="Username" value="' + esc(m.username || '') + '">' +
+      '<input class="input" name="password" type="password" style="margin-top:8px" placeholder="' + (id ? 'Isi jika ingin ganti password' : 'Password') + '">' +
+      '<button class="btn" type="submit" style="width:100%;margin-top:22px">💾 Simpan</button>' +
+    '</form>'
+  );
+}
+async function simpanMember(e, id) {
+  e.preventDefault();
+  const fd = Object.fromEntries(new FormData(e.target));
+  fd.id_member = id || '';
+  if (!fd.password) delete fd.password;
+  if (!fd.username) delete fd.username;
+  try {
+    await api('saveMember', fd);
+    closeModal();
+    toast('Member tersimpan ✅');
+    go('members');
+  } catch (err) { toast(err.message, 'err'); }
+}
+async function hapusMember(id) {
+  if (!confirm('Nonaktifkan member ini?')) return;
+  try {
+    await api('deleteMember', { id_member: id });
+    closeModal();
+    toast('Member dinonaktifkan');
+    go('members');
+  } catch (err) { toast(err.message, 'err'); }
+}
+function perpanjang(id) {
+  S.kasirMember = id;
+  closeModal();
+  go('kasir');
+}
+async function kirimWAMember(id) {
+  const m = await api('getMember', { id_member: id });
+  const pesan = prompt('Pesan WhatsApp untuk ' + m.nama, pesanTagihan(m.nama, S.settings.nama_gym, m.tgl_jatuh_tempo, m.sisa_hari));
+  if (!pesan) return;
+  try {
+    const r = await api('kirimWA', { id_member: id, pesan: pesan });
+    toast(r.catatan ? '💬 ' + r.catatan : 'Pesan WhatsApp terkirim ✅');
+  } catch (err) { toast(err.message, 'err'); }
+}
+
+// ================= KASIR (POS) =================
+let KT = 'membership';
+async function vKasir() {
+  const pre = S.kasirMember;
+  S.kasirMember = null;
+  const [members, paket, produk] = await Promise.all([api('listMembers'), api('listPaket'), api('listProduk')]);
+  S.kc = { members: members, paket: paket, produk: produk };
+  setView(
+    '<div class="kasir-layout"><div><h2>Kasir</h2>' +
+    '<label>Member</label>' +
+    '<select class="input" id="k-member"><option value="">— Tanpa member (produk saja) —</option>' +
+      members.map(m => '<option value="' + esc(m.id_member) + '" ' + (m.id_member === pre ? 'selected' : '') + '>' + esc(m.nama) + ' · ' + esc(m.id_member) + '</option>').join('') +
+    '</select>' +
+    '<div class="row" style="margin:16px 0"><button class="chip" id="kt-membership" onclick="kTab(\'membership\')">🎫 Membership</button>' +
+    '<button class="chip" id="kt-produk" onclick="kTab(\'produk\')">🥛 Produk</button></div>' +
+    '<div id="k-items" class="grid2"></div></div>' +
+    '<div class="glass" id="cart"></div></div>'
+  );
+  kTab(KT);
+  renderCart();
+}
+function kTab(t) {
+  KT = t;
+  ROOT.querySelectorAll('[id^=kt-]').forEach(b => b.classList.toggle('active', b.id === 'kt-' + t));
+  const items = t === 'membership'
+    ? S.kc.paket.map(x => ({ id: x.id_paket, nama: x.nama_paket, harga: x.harga, sub: x.durasi_hari + ' hari', ico: '🎫' }))
+    : S.kc.produk.map(x => ({ id: x.id_produk, nama: x.nama_produk, harga: x.harga, sub: 'Stok ' + x.stok, ico: '🥛' }));
+  $('#k-items').innerHTML = items.map((x, i) =>
+    '<button class="item-card" style="--i:' + i + '" onclick="addCart(\'' + t + '\',\'' + esc(x.id) + '\')">' +
+      '<span class="ico">' + x.ico + '</span><b>' + esc(x.nama) + '</b>' +
+      '<span class="muted">' + esc(x.sub) + '</span><span class="accent" style="font-weight:800">' + rp(x.harga) + '</span>' +
+    '</button>').join('') || '<p class="muted">Belum ada data.</p>';
+}
+function addCart(tipe, id) {
+  const src = tipe === 'membership' ? S.kc.paket.find(x => x.id_paket === id) : S.kc.produk.find(x => x.id_produk === id);
+  const nama = tipe === 'membership' ? src.nama_paket : src.nama_produk;
+  const ex = S.cart.find(c => c.tipe === tipe && c.id === id);
+  if (tipe === 'membership' && S.cart.some(c => c.tipe === 'membership')) return toast('Membership hanya 1 per transaksi', 'err');
+  if (ex) {
+    if (ex.qty >= ex.stok) return toast('Stok tidak cukup', 'err');
+    ex.qty++;
+  } else {
+    S.cart.push({ tipe: tipe, id: id, nama: nama, harga: Number(src.harga), qty: 1, stok: tipe === 'produk' ? Number(src.stok) : 1 });
+  }
+  renderCart();
+  toast('➕ ' + nama);
+}
+function delCart(i) {
+  S.cart[i].qty--;
+  if (S.cart[i].qty <= 0) S.cart.splice(i, 1);
+  renderCart();
+}
+function renderCart() {
+  const el = $('#cart');
+  if (!el) return;
+  const total = S.cart.reduce((a, c) => a + c.harga * c.qty, 0);
+  const jumlah = S.cart.reduce((a, c) => a + c.qty, 0);
+  el.innerHTML =
+    '<div class="row between"><h3>Keranjang (' + jumlah + ')</h3>' +
+      (S.cart.length ? '<button class="btn-ghost btn-sm chip" style="color:var(--danger)" onclick="S.cart=[];renderCart()">Kosongkan</button>' : '') + '</div>' +
+    '<div class="cart-list">' +
+      (S.cart.map((c, i) =>
+        '<div class="row between"><span style="color:var(--text);font-size:14px">' + esc(c.nama) + ' <span class="muted">x' + c.qty + '</span></span>' +
+        '<span class="row"><b style="color:var(--text)">' + rp(c.harga * c.qty) + '</b>' +
+        '<button class="icon-btn" style="width:30px;height:30px" onclick="delCart(' + i + ')">−</button></span></div>').join('') ||
+        '<p class="muted">Keranjang kosong</p>') +
+    '</div>' +
+    '<div class="row between" style="border-top:1px dashed var(--border);padding-top:12px"><b style="color:var(--text)">Total</b>' +
+      '<h2 class="accent">' + rp(total) + '</h2></div>' +
+    '<div class="grid2" style="margin-top:12px">' +
+      '<select class="input" id="k-metode"><option>Tunai</option><option>Transfer</option><option>QRIS</option></select>' +
+      '<select class="input" id="k-paper" onchange="localStorage.setItem(\'gym_paper\',this.value)"><option value="58">Nota 58mm</option><option value="80">Nota 80mm</option></select>' +
+    '</div>' +
+    '<button class="btn" id="pay" style="width:100%;margin-top:14px" onclick="bayar()">🖨️ Bayar & Cetak Nota</button>';
+  $('#k-paper').value = localStorage.getItem('gym_paper') || '58';
+}
+async function bayar() {
+  if (!S.cart.length) return toast('Keranjang masih kosong', 'err');
+  const memberId = $('#k-member').value;
+  if (S.cart.some(c => c.tipe === 'membership') && !memberId) return toast('Pilih member untuk membership', 'err');
+  const btn = $('#pay');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin-sm"></span> Memproses...';
+  try {
+    const trx = await api('checkout', {
+      items: S.cart.map(c => ({ tipe: c.tipe, id: c.id, qty: c.qty })),
+      id_member: memberId,
+      metode_bayar: $('#k-metode').value
+    });
+    S.cart = [];
+    toast('Transaksi berhasil ✅');
+    printNota(trx, $('#k-paper').value);
+    go('kasir');
+  } catch (err) {
+    toast(err.message, 'err');
+    btn.disabled = false;
+    btn.textContent = '🖨️ Bayar & Cetak Nota';
+  }
+}
+
+// ================= CETAK NOTA (58mm / 80mm) =================
+function printNota(t, paper) {
+  const g = t.gym || {};
+  const is80 = paper === '80';
+  const width = is80 ? '72mm' : '48mm';
+  const logo = g.logo_base64
+    ? '<img src="' + g.logo_base64 + '" style="max-width:' + (is80 ? '40mm' : '28mm') + ';max-height:22mm;display:block;margin:0 auto 4px">'
+    : '<div style="margin:0 auto 4px;width:' + (is80 ? '14mm' : '12mm') + ';height:' + (is80 ? '14mm' : '12mm') + ';border:1.5px solid #000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:' + (is80 ? '13px' : '11px') + '">' + esc((g.nama || 'GYM').split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 3).toUpperCase()) + '</div>';
+  const rows = t.items.map(i =>
+    '<tr><td colspan="2">' + esc(i.nama_item) + '</td></tr>' +
+    '<tr><td>' + i.qty + ' x ' + fmt(i.harga) + '</td><td style="text-align:right">' + fmt(i.subtotal) + '</td></tr>'
+  ).join('');
+  const html =
+    '<div class="nota" style="width:' + width + '">' + logo +
+      '<div style="text-align:center"><b style="font-size:13px">' + esc(g.nama) + '</b><div>' + esc(g.alamat || '') + '</div><div>' + esc(g.telepon || '') + '</div></div>' +
+      '<hr><div>No : ' + esc(t.id_trx) + '</div><div>Tgl : ' + esc(t.tanggal) + '</div>' +
+      '<div>Kasir : ' + esc(t.kasir) + '</div><div>Member : ' + esc(t.member || t.id_member || '-') + '</div>' +
+      '<hr><table>' + rows + '</table><hr>' +
+      '<table><tr><td><b>TOTAL</b></td><td style="text-align:right"><b>' + rp(t.total) + '</b></td></tr>' +
+      '<tr><td>Bayar</td><td style="text-align:right">' + esc(t.metode_bayar) + '</td></tr></table>' +
+      '<hr><div style="text-align:center">Terima kasih, selamat berlatih 💪</div>' +
+    '</div>';
+  printEl().innerHTML = html;
+  paperStyleEl().textContent = '@page{size:' + (is80 ? '80mm' : '58mm') + ' auto;margin:2mm}';
+  setTimeout(() => window.print(), 200);
+}
+function reprint(i) {
+  const t = S.riwayat[i];
+  printNota({
+    id_trx: t.id_trx, tanggal: t.tanggal, kasir: t.kasir, member: t.id_member, total: t.total,
+    metode_bayar: t.metode_bayar, items: t.items,
+    gym: { nama: S.settings.nama_gym, alamat: S.settings.alamat_gym, telepon: S.settings.telepon_gym, logo_base64: S.settings.logo_base64 }
+  }, localStorage.getItem('gym_paper') || '58');
+}
+
+// ================= RIWAYAT / TAGIHAN =================
+async function vRiwayat() {
+  const list = await api('listTransaksi');
+  S.riwayat = list;
+  const isMember = S.user.role === 'member';
+  setView(
+    '<h2>' + (isMember ? 'Tagihan & Riwayat' : 'Riwayat Transaksi') + '</h2>' +
+    '<div class="list stagger" style="margin-top:16px">' +
+      (list.length ? list.map((t, i) =>
+        '<div class="item" style="flex-direction:column;align-items:stretch;cursor:default">' +
+          '<div class="row between"><b style="color:var(--text)">' + esc(t.id_trx) + '</b><span class="pill pill-ok">' + esc(t.metode_bayar) + '</span></div>' +
+          '<p class="muted" style="margin-top:4px">' + esc(t.tanggal) + ' · ' + esc(t.jenis) + '</p>' +
+          '<div class="row between" style="margin-top:10px"><b class="accent" style="font-size:16px">' + rp(t.total) + '</b>' +
+          (isMember ? '' : '<button class="btn btn-ghost btn-sm" onclick="reprint(' + i + ')">🖨️ Cetak Ulang</button>') +
+          '</div></div>').join('') : '<p class="muted">Belum ada transaksi.</p>') +
+    '</div>'
+  );
+}
+
+// ================= KARTU MEMBER =================
+async function vKartu() {
+  const m = await api('getMember', { id_member: S.user.id_member });
+  const s = S.settings;
+  const pesanSisa = m.sisa_hari >= 0 ? m.sisa_hari + ' hari lagi' : 'sudah berakhir';
+  setView(
+    '<div class="mcard" id="card" onmousemove="tilt(event)" onmouseleave="untilt()">' +
+      '<div class="row between" style="position:relative;z-index:1">' +
+        '<div class="row">' + logoTag(s.logo_base64, 30) + '<b style="color:var(--text)">' + esc(s.nama_gym) + '</b></div>' +
+        '<span class="pill pill-ok">' + esc(m.status_tampil) + '</span>' +
+      '</div>' +
+      '<div class="row between" style="margin-top:28px;align-items:flex-end;position:relative;z-index:1">' +
+        '<div><p style="opacity:.8;font-size:11px;letter-spacing:.12em">NAMA MEMBER</p>' +
+        '<h2 style="font-size:22px;margin-top:4px">' + esc(m.nama) + '</h2>' +
+        '<p style="font-size:13px;margin-top:6px;opacity:.9">' + esc(m.nama_paket) + '</p></div>' +
+        '<div class="qr" id="qr"></div>' +
+      '</div>' +
+      '<div class="row between" style="margin-top:22px;font-size:12px;position:relative;z-index:1">' +
+        '<span>No: ' + esc(m.id_member) + '</span><span>Aktif s/d ' + esc(m.tgl_jatuh_tempo) + ' (' + pesanSisa + ')</span>' +
+      '</div>' +
+    '</div>' +
+    '<p class="muted" style="text-align:center;margin-top:18px">Tunjukkan kartu ini saat check-in di resepsionis</p>'
+  );
+  if (window.QRCode) {
+    new QRCode($('#qr'), { text: m.qr_kode || m.id_member, width: 84, height: 84, colorDark: '#052e16', colorLight: '#ffffff' });
+  }
+}
+function tilt(e) {
+  const c = $('#card');
+  if (!c) return;
+  const r = c.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width - 0.5;
+  const y = (e.clientY - r.top) / r.height - 0.5;
+  c.style.transform = 'rotateY(' + (x * 14) + 'deg) rotateX(' + (-y * 14) + 'deg)';
+}
+function untilt() { const c = $('#card'); if (c) c.style.transform = ''; }
+
+// ================= NOTIFIKASI =================
+function jenisIco(j) { return /Sudah/.test(j) ? '⚠️' : /Akan/.test(j) ? '⏳' : /Pembayaran/.test(j) ? '✅' : '💬'; }
+async function vNotif() {
+  const list = await api('listNotifikasi');
+  const admin = S.user.role === 'admin';
+  setView(
+    '<div class="row between"><h2>Notifikasi</h2>' +
+      (admin ? '<button class="btn btn-sm" onclick="cekJatuhTempo()">⏰ Cek Jatuh Tempo</button>' : '') + '</div>' +
+    '<div class="list stagger" style="margin-top:16px">' +
+      (list.length ? list.map(n =>
+        '<div class="item" style="cursor:default;align-items:flex-start">' +
+          '<span class="ico">' + jenisIco(n.jenis) + '</span>' +
+          '<div style="flex:1;min-width:0"><div class="row between"><h3 style="font-size:14px">' + esc(n.jenis) + '</h3>' +
+          '<span class="muted" style="font-size:11px">' + esc(String(n.tanggal).slice(5, 16)) + '</span></div>' +
+          '<p style="margin-top:6px;font-size:13px;color:var(--body);line-height:1.5">' + esc(n.pesan) + '</p></div>' +
+        '</div>').join('') : '<p class="muted">Belum ada notifikasi.</p>') +
+    '</div>'
+  );
+}
+async function cekJatuhTempo() {
+  try {
+    const r = await api('runReminder');
+    toast('Notifikasi dibuat: ' + r.notifAplikasi + ' · WA terkirim: ' + r.kirimWA);
+    go('notif');
+  } catch (err) { toast(err.message, 'err'); }
+}
+
+// ================= PRODUK & PAKET =================
+let PT = 'produk';
+async function vProduk() {
+  const [produk, paket] = await Promise.all([api('listProduk'), api('listPaket')]);
+  S.kc = Object.assign(S.kc || {}, { produk: produk, paket: paket });
+  const admin = S.user.role === 'admin';
+  const list = PT === 'produk' ? produk : paket;
+  setView(
+    '<div class="row between"><h2>' + (PT === 'produk' ? 'Produk' : 'Paket') + '</h2>' +
+      (admin ? '<button class="btn btn-sm" onclick="formItem()">+ Tambah</button>' : '') + '</div>' +
+    '<div class="row" style="margin:16px 0"><button class="chip ' + (PT === 'produk' ? 'active' : '') + '" onclick="PT=\'produk\';go(\'produk\')">🥛 Produk</button>' +
+    '<button class="chip ' + (PT === 'paket' ? 'active' : '') + '" onclick="PT=\'paket\';go(\'produk\')">🎫 Paket</button></div>' +
+    '<div class="list stagger">' +
+      (list.length ? list.map(x => PT === 'produk'
+        ? '<div class="item" onclick="' + (admin ? 'formItem(\'' + esc(x.id_produk) + '\')' : '') + '"><span class="ico">🥛</span>' +
+          '<div style="flex:1"><h3 style="font-size:15px">' + esc(x.nama_produk) + '</h3><p class="muted" style="margin-top:3px">' + esc(x.kategori) + ' · Stok ' + esc(x.stok) + '</p></div>' +
+          '<b class="accent">' + rp(x.harga) + '</b></div>'
+        : '<div class="item" onclick="' + (admin ? 'formItem(\'' + esc(x.id_paket) + '\')' : '') + '"><span class="ico">🎫</span>' +
+          '<div style="flex:1"><h3 style="font-size:15px">' + esc(x.nama_paket) + '</h3><p class="muted" style="margin-top:3px">' + esc(x.durasi_hari) + ' hari · ' + esc(x.deskripsi || '') + '</p></div>' +
+          '<b class="accent">' + rp(x.harga) + '</b></div>'
+      ).join('') : '<p class="muted">Belum ada data.</p>') +
+    '</div>'
+  );
+}
+function formItem(id) {
+  const isProduk = PT === 'produk';
+  const src = id ? (isProduk ? S.kc.produk : S.kc.paket).find(x => (isProduk ? x.id_produk : x.id_paket) === id) : {};
+  if (isProduk) {
+    openModal(
+      '<h2>' + (id ? 'Edit' : 'Tambah') + ' Produk</h2>' +
+      '<form onsubmit="simpanItem(event,\'' + esc(id || '') + '\')">' +
+        '<label>Nama Produk</label><input class="input" name="nama_produk" value="' + esc(src.nama_produk || '') + '" required>' +
+        '<label>Kategori</label><input class="input" name="kategori" value="' + esc(src.kategori || '') + '" placeholder="Minuman / Makanan / Suplemen">' +
+        '<div class="grid2"><div><label>Harga (Rp)</label><input class="input" type="number" min="0" name="harga" value="' + (src.harga || '') + '" required></div>' +
+        '<div><label>Stok</label><input class="input" type="number" min="0" name="stok" value="' + (src.stok == null ? '' : src.stok) + '" required></div></div>' +
+        '<button class="btn" type="submit" style="width:100%;margin-top:22px">💾 Simpan</button>' +
+      '</form>'
+    );
+  } else {
+    openModal(
+      '<h2>' + (id ? 'Edit' : 'Tambah') + ' Paket</h2>' +
+      '<form onsubmit="simpanItem(event,\'' + esc(id || '') + '\')">' +
+        '<label>Nama Paket</label><input class="input" name="nama_paket" value="' + esc(src.nama_paket || '') + '" required>' +
+        '<div class="grid2"><div><label>Durasi (hari)</label><input class="input" type="number" min="1" name="durasi_hari" value="' + (src.durasi_hari || '') + '" required></div>' +
+        '<div><label>Harga (Rp)</label><input class="input" type="number" min="0" name="harga" value="' + (src.harga || '') + '" required></div></div>' +
+        '<label>Deskripsi</label><input class="input" name="deskripsi" value="' + esc(src.deskripsi || '') + '">' +
+        '<button class="btn" type="submit" style="width:100%;margin-top:22px">💾 Simpan</button>' +
+      '</form>'
+    );
+  }
+}
+async function simpanItem(e, id) {
+  e.preventDefault();
+  const fd = Object.fromEntries(new FormData(e.target));
+  try {
+    if (PT === 'produk') { fd.id_produk = id; fd.stok = Number(fd.stok); fd.harga = Number(fd.harga); await api('saveProduk', fd); }
+    else { fd.id_paket = id; fd.durasi_hari = Number(fd.durasi_hari); fd.harga = Number(fd.harga); await api('savePaket', fd); }
+    closeModal();
+    toast('Data tersimpan ✅');
+    go('produk');
+  } catch (err) { toast(err.message, 'err'); }
+}
+
+// ================= KARTU / PENGATURAN (ADMIN) =================
+const PRESET = ['#22C55E', '#16A34A', '#10B981', '#84CC16', '#14B8A6', '#0EA5E9'];
+async function vPengaturan() {
+  const s = await api('getSettings');
+  S.settings = Object.assign(S.settings, s);
+  setView(
+    '<h2>Pengaturan Gym</h2>' +
+    '<div class="glass" style="margin-top:16px;text-align:center">' +
+      '<div id="logo-prev" class="logo-box lg">' + (s.logo_base64 ? '<img src="' + s.logo_base64 + '">' : '🏋️') + '</div>' +
+      '<p class="muted" style="margin:14px 0">Logo tampil di aplikasi, kartu member, dan nota cetak</p>' +
+      '<input type="file" id="logo-file" accept="image/*" hidden>' +
+      '<button class="btn btn-ghost btn-sm" onclick="$(\'#logo-file\').click()">📤 Upload Logo dari Perangkat</button>' +
+    '</div>' +
+    '<div class="glass" style="margin-top:16px">' +
+      '<label>Nama Gym</label><input class="input" id="s-nama" value="' + esc(s.nama_gym) + '">' +
+      '<label>Alamat (tampil di nota)</label><input class="input" id="s-alamat" value="' + esc(s.alamat_gym) + '">' +
+      '<label>Telepon</label><input class="input" id="s-telp" value="' + esc(s.telepon_gym) + '">' +
+      '<label>Warna Tema</label>' +
+      '<div class="row" style="flex-wrap:wrap">' +
+        '<input type="color" id="s-warna" value="' + esc(s.warna_brand) + '" oninput="applyTheme(this.value)" style="width:48px;height:40px;border:0;background:none">' +
+        PRESET.map(c => '<button class="swatch" style="background:' + c + '" onclick="setWarna(\'' + c + '\')"></button>').join('') +
+      '</div>' +
+      '<div class="row between" style="margin-top:20px"><div><h3>Mode Demo</h3><p class="muted" style="margin-top:4px">Akun & data contoh. Matikan untuk produksi.</p></div>' +
+        '<button class="tg ' + (s.demo_aktif === 'true' ? 'on' : '') + '" id="s-demo" onclick="this.classList.toggle(\'on\')"></button></div>' +
+      (S.user.demo ? '' : '<div class="row between" style="margin-top:18px"><div><h3>Data Transaksi Demo</h3><p class="muted" style="margin-top:4px">Hapus transaksi contoh (kode DEMO-). Data asli tidak terpengaruh.</p></div><button class="btn btn-ghost btn-sm" onclick="bersihkanDataDemo()">🧹 Bersihkan</button></div>') +
+      '<label>Token WhatsApp (Fonnte)</label><input class="input" id="s-wa" type="password" value="' + esc(s.wa_token) + '" placeholder="Token dari penyedia gateway">' +
+      '<label>Ingatkan jatuh tempo berapa hari sebelumnya</label><input class="input" id="s-hari" type="number" min="0" value="' + esc(s.hari_peringatan) + '">' +
+      '<button class="btn" style="width:100%;margin-top:22px" onclick="simpanPengaturan()">💾 Simpan Pengaturan</button>' +
+    '</div>' +
+    '<button class="btn btn-ghost" style="width:100%;margin-top:14px" onclick="go(\'notif\')">🔔 Lihat Notifikasi</button>'
+  );
+}
+function setWarna(c) { $('#s-warna').value = c; applyTheme(c); }
+async function simpanPengaturan() {
+  const settings = {
+    nama_gym: $('#s-nama').value.trim(),
+    alamat_gym: $('#s-alamat').value.trim(),
+    telepon_gym: $('#s-telp').value.trim(),
+    warna_brand: $('#s-warna').value,
+    demo_aktif: $('#s-demo').classList.contains('on') ? 'true' : 'false',
+    wa_token: $('#s-wa').value.trim(),
+    hari_peringatan: $('#s-hari').value
+  };
+  try {
+    await api('saveSettings', { settings: settings });
+    S.settings = Object.assign({}, S.settings, settings);
+    S.brand = Object.assign({}, S.brand, { demo_aktif: settings.demo_aktif, nama_gym: settings.nama_gym, warna_brand: settings.warna_brand });
+    applyTheme(settings.warna_brand);
+    updateHeader();
+    toast('Pengaturan tersimpan ✅');
+  } catch (err) { toast(err.message, 'err'); }
+}
+ROOT.addEventListener('change', async e => {
+  if (e.target.id !== 'logo-file') return;
+  const f = e.target.files[0];
+  if (!f) return;
+  try {
+    const b64 = await resizeImage(f, 320);
+    await api('saveLogo', { base64: b64 });
+    S.settings.logo_base64 = b64;
+    $('#logo-prev').innerHTML = '<img src="' + b64 + '">';
+    updateHeader();
+    toast('Logo berhasil diupload ✅');
+  } catch (err) { toast(err.message, 'err'); }
+});
+function resizeImage(file, max) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * k);
+      c.height = Math.round(img.height * k);
+      const x = c.getContext('2d');
+      x.drawImage(img, 0, 0, c.width, c.height);
+      let out = c.toDataURL('image/png');
+      if (out.length > 44000) out = c.toDataURL('image/jpeg', 0.8);
+      if (out.length > 44000) return rej(new Error('Logo masih terlalu besar, gunakan gambar yang lebih kecil'));
+      res(out);
+    };
+    img.onerror = () => rej(new Error('Gambar tidak bisa dibaca'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// ================= AKUN & PASSWORD =================
+function genPassword() {
+  const c = 'abcdefghjkmnpqrstuvwxyz23456789';
+  let out = '';
+  for (let i = 0; i < 8; i++) out += c[Math.floor(Math.random() * c.length)];
+  return out;
+}
+function formGantiPassword() {
+  openModal(
+    '<h2>Ganti Password</h2>' +
+    '<p class="muted" style="margin-top:6px">Password minimal 6 karakter.</p>' +
+    '<form onsubmit="simpanGantiPassword(event)">' +
+      '<label>Password Lama</label><input class="input" type="password" name="old_password" required autocomplete="current-password">' +
+      '<label>Password Baru</label><input class="input" type="password" name="new_password" required minlength="6" autocomplete="new-password">' +
+      '<label>Ulangi Password Baru</label><input class="input" type="password" name="confirm" required minlength="6" autocomplete="new-password">' +
+      '<button class="btn" type="submit" style="width:100%;margin-top:22px">🔑 Simpan Password Baru</button>' +
+    '</form>'
+  );
+}
+async function simpanGantiPassword(e) {
+  e.preventDefault();
+  const fd = Object.fromEntries(new FormData(e.target));
+  if (fd.new_password !== fd.confirm) return toast('Konfirmasi password tidak sama', 'err');
+  try {
+    await api('changePassword', { old_password: fd.old_password, new_password: fd.new_password });
+    closeModal();
+    toast('Password berhasil diganti ✅');
+  } catch (err) { toast(err.message, 'err'); }
+}
+async function bukaResetPassword(id) {
+  const m = await api('getMember', { id_member: id });
+  const pw = genPassword();
+  openModal(
+    '<h2>Reset Password</h2>' +
+    '<p class="muted" style="margin-top:6px">Member: ' + esc(m.nama) + '</p>' +
+    '<form onsubmit="simpanResetPassword(event,\'' + esc(id) + '\')">' +
+      (m.username ? '' : '<label>Username Login</label><input class="input" name="username" required placeholder="contoh: budi.santoso">') +
+      '<label>Password Baru</label>' +
+      '<div class="row"><input class="input" name="password" value="' + pw + '" required minlength="6">' +
+      '<button type="button" class="btn btn-ghost btn-sm" style="padding:12px 14px" onclick="this.previousElementSibling.value=genPassword()">🎲</button></div>' +
+      '<p class="muted" style="margin-top:8px">' + (m.username ? 'Username login: ' + esc(m.username) : 'Member belum punya akun, akun akan dibuat dengan username di atas.') + '</p>' +
+      '<button class="btn" type="submit" style="width:100%;margin-top:20px">🔄 Reset Password</button>' +
+    '</form>'
+  );
+}
+async function simpanResetPassword(e, id) {
+  e.preventDefault();
+  const fd = Object.fromEntries(new FormData(e.target));
+  try {
+    await api('resetPasswordMember', { id_member: id, password: fd.password, username: fd.username || '' });
+    openModal(
+      '<h2>Password Berhasil Direset ✅</h2>' +
+      '<p class="muted" style="margin-top:8px">Berikan password berikut kepada member dan minta segera diganti.</p>' +
+      '<div class="glass" style="margin-top:16px;text-align:center"><small>PASSWORD BARU</small>' +
+      '<div style="font-size:26px;font-weight:800;letter-spacing:.12em;color:var(--brand);margin-top:8px">' + esc(fd.password) + '</div></div>' +
+      '<button class="btn" style="width:100%;margin-top:18px" onclick="closeModal()">Selesai</button>'
+    );
+  } catch (err) { toast(err.message, 'err'); }
+}
+async function hapusMemberPermanen(id) {
+  if (!confirm('Hapus member ini beserta akun loginnya? Riwayat transaksi tetap tersimpan. Tindakan ini tidak bisa dibatalkan.')) return;
+  try {
+    await api('hapusPermanen', { id_member: id });
+    closeModal();
+    toast('Member dihapus permanen');
+    go('members');
+  } catch (err) { toast(err.message, 'err'); }
+}
+
+// ================= ROUTER TAMPILAN =================
+const VIEWS = {
+  dashboard: vDashboard, members: vMembers, kasir: vKasir, produk: vProduk,
+  pengaturan: vPengaturan, kartu: vKartu, riwayat: vRiwayat, notif: vNotif
+};
+
+// ================= LOGIN =================
+$('#login-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = $('#login-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin-sm"></span> Memeriksa...';
+  try {
+    const r = await api('login', { username: $('#lu').value.trim(), password: $('#lp').value });
+    S.token = r.token;
+    S.user = r.user;
+    localStorage.setItem('gym_session', JSON.stringify({ token: S.token, user: S.user }));
+    S.settings = Object.assign({}, S.brand, await api('getSettings'));
+    enterApp();
+    toast('Selamat datang, ' + S.user.nama + ' 👋');
+  } catch (err) {
+    toast(err.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Masuk';
+  }
+});
+
+// ================= TEMA SIANG / MALAM =================
+const TEMA_KEY = 'gym_tema';
+function terapkanTema(mode) {
+  HOST.classList.toggle('siang', mode === 'siang');
+  ROOT.querySelectorAll('.tema-btn').forEach(b => {
+    b.title = mode === 'siang' ? 'Ganti ke mode malam' : 'Ganti ke mode siang';
+  });
+}
+function toggleTema() {
+  const next = HOST.classList.contains('siang') ? 'malam' : 'siang';
+  try { localStorage.setItem(TEMA_KEY, next); } catch (e) {}
+  terapkanTema(next);
+}
+
+// ================= LOGIN DEMO =================
+function tampilkanKotakDemo() {
+  $('#demo-box').hidden = String(S.brand && S.brand.demo_aktif) !== 'true';
+}
+async function segarkanStatusDemo() {
+  try {
+    S.brand = Object.assign({}, S.brand, await api('getBrand'));
+    tampilkanKotakDemo();
+  } catch (e) {}
+}
+function loginDemo(username) {
+  $('#lu').value = username;
+  $('#lp').value = 'demo1234';
+  $('#login-form').requestSubmit();
+}
+
+// ================= DATA DEMO =================
+async function bersihkanDataDemo() {
+  if (!confirm('Hapus semua transaksi demo (kode DEMO-)? Data asli tidak terpengaruh.')) return;
+  try {
+    const r = await api('hapusDataDemo');
+    toast('Transaksi demo dihapus: ' + r.transaksi);
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+// ================= KEAMANAN: LOGOUT OTOMATIS =================
+const IDLE_MENIT = 30;
+let aktivitasTerakhir = Date.now();
+['click', 'keydown', 'touchstart', 'input'].forEach(ev =>
+  HOST.addEventListener(ev, () => { aktivitasTerakhir = Date.now(); }, { passive: true }));
+setInterval(() => {
+  if (!S.token) return;
+  if (Date.now() - aktivitasTerakhir > IDLE_MENIT * 60 * 1000) {
+    logout();
+    toast('Sesi berakhir karena tidak ada aktivitas. Silakan login lagi.', 'err');
+  }
+}, 15000);
+
+// ================= BOOT =================
+(async () => {
+  const started = Date.now();
+  try { terapkanTema(localStorage.getItem(TEMA_KEY) || 'malam'); } catch (e) { terapkanTema('malam'); }
+  try {
+    S.brand = await api('getBrand');
+    S.settings = Object.assign({}, S.brand);
+    applyTheme(S.brand.warna_brand);
+    $('#login-logo').innerHTML = logoTag(S.brand.logo_base64, 84);
+    $('#login-title').innerHTML = esc(S.brand.nama_gym);
+    $('#splash-logo').innerHTML = logoTag(S.brand.logo_base64, 64);
+    $('#splash-nama').textContent = 'MENYIAPKAN ' + (S.brand.nama_gym || 'GYM').toUpperCase() + '...';
+    tampilkanKotakDemo();
+    if (IS_PREVIEW) {
+      $('#demo-hint').innerHTML = 'Mode preview. Akun: admin / kasir / member (password: edudigital)<br>Akun demo: demo_admin, demo_kasir (password: demo1234)';
+    }
+    const saved = JSON.parse(localStorage.getItem('gym_session') || 'null');
+    if (saved) {
+      S.token = saved.token;
+      S.user = saved.user;
+      S.settings = Object.assign({}, S.brand, await api('getSettings'));
+      enterApp();
+    }
+  } catch (err) {
+    logout();
+    toast(err.message, 'err');
+  }
+  await sleep(Math.max(0, 1300 - (Date.now() - started)));
+  $('#splash').classList.add('hide');
+})();
+</script>
+</body>
+</html>
